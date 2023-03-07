@@ -1,0 +1,35 @@
+#RPM to install new yum repo for v5.7. Ignore the following two commands to install latest version
+wget https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+sudo rpm -ivh mysql57-community-release-el7-9.noarch.rpm
+
+
+# Install package
+sudo yum install mysql-server
+sudo systemctl start mysqld
+
+# Update password for root
+sudo grep 'temporary password' /var/log/mysqld.log
+sudo mysql_secure_installation
+
+# Verify
+mysqladmin -u root -p version
+
+#Login to mysql and grant privileges
+mysql -u root -p
+
+# To allow access to root to all hosts
+create user 'root'@'%' identified by 'password';
+grant all privileges on *.* to 'root'@'%' with grant option;
+alter user root identified with mysql_native_password by 'password';
+
+# Resstart mysql
+sudo systemctl stop mysqld
+sudo systemctl start mysqld
+
+# To connect from another host
+mysql -u root -p -h 10.23.205.81 -P 3306
+
+# To change root password
+UPDATE mysql.user SET authentication_string=PASSWORD('new password') WHERE user='root';
+FLUSH PRIVILEGES;
+grant all privileges on *.* to 'root'@'%' identified by 'new password';
