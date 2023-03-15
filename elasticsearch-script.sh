@@ -1,7 +1,18 @@
 #!/bin/bash
 
-# Define the list of cluster names to iterate through
-clusters=("cluster-1" "cluster-2" "cluster-3")
+# Define the output file name
+output_file="disk_used.csv"
+
+# Remove the output file if it already exists
+if [ -f "$output_file" ]; then
+  rm "$output_file"
+fi
+
+# Add the header to the output file
+echo "Cluster, Disk Used (bytes)" >> "$output_file"
+
+# Get the list of available cluster names from kubectl
+clusters=($(kubectl config get-contexts -o=name | awk -F/ '{print $NF}'))
 
 # Loop through each cluster
 for cluster in "${clusters[@]}"
@@ -20,8 +31,11 @@ do
   # Wait for the port forward to be established
   sleep 5
   
-  # Curl the _cat/allocation endpoint using the elastic password
-  curl -u "elastic:$elastic_password" "http://localhost:9200/_cat/allocation"
+  # Curl the _cat/allocation endpoint using the elastic password and grep the disk used value
+  disk_used=$(curl -s -u "elastic:$elastic_password" "http://localhost:9200/_cat/allocation" | awk '{sum += $6} END {print sum}')
+  
+  # Print the disk used value for the current cluster and append to the output file
+  echo "$cluster, $disk_used" >> "$output_file"
   
   # Kill the port forward process
   kill $(jobs -p)
